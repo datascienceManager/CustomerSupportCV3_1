@@ -1,0 +1,98 @@
+version: "3.9"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# AI Voice Agent — Local Dev with Docker Compose + Ollama sidecar
+# Usage: docker compose up --build
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+
+  # ── Ollama LLM server ──────────────────────────────────────────────────────
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_models:/root/.ollama     # Persist downloaded models
+    restart: unless-stopped
+    networks:
+      - agent_net
+    # Uncomment for GPU support (NVIDIA):
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+
+  # ── Model pull helper (runs once, pulls default model) ────────────────────
+  ollama-pull:
+    image: ollama/ollama:latest
+    depends_on:
+      - ollama
+    entrypoint: >
+      sh -c "
+        sleep 5 &&
+        ollama pull ${OLLAMA_MODEL:-llama3.2} &&
+        echo 'Model pull complete'
+      "
+    environment:
+      - OLLAMA_HOST=ollama:11434
+    networks:
+      - agent_net
+    restart: "no"
+
+  # ── Main Streamlit App ─────────────────────────────────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8501:8501"
+    env_file:
+      - .env
+    environment:
+      - OLLAMA_BASE_URL=http://ollama:11434   # Point to sidecar
+      - DB_TYPE=sqlite
+      - SQLITE_DB_PATH=/app/data/queries.db
+      - APP_ENV=development
+    volumes:
+      - ./data:/app/data
+      - ./config:/app/config
+      - ./logs:/app/logs
+    depends_on:
+      - ollama
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - agent_net
+
+  # ── MySQL (optional — production-like local testing) ──────────────────────
+  mysql:
+    image: mysql:8.0
+    profiles: ["mysql"]
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: voiceagent_db
+      MYSQL_USER: agentuser
+      MYSQL_PASSWORD: agentpass
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - agent_net
+
+volumes:
+  ollama_models:    # Persists pulled LLM weights across restarts
+  mysql_data:
+
+networks:
+  agent_net:
+    driver: bridge
