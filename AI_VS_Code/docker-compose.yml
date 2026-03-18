@@ -1,0 +1,61 @@
+version: "3.9"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# AI Voice Agent — Local Dev with Docker Compose
+# Usage: docker compose up --build
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+  # ── Main Streamlit App ────────────────────────────────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8501:8501"
+    env_file:
+      - .env
+    environment:
+      - DB_TYPE=sqlite
+      - SQLITE_DB_PATH=/app/data/queries.db
+      - APP_ENV=development
+    volumes:
+      - ./data:/app/data           # Persist SQLite DB
+      - ./config:/app/config       # Mount Google credentials
+      - ./logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - agent_net
+
+  # ── MySQL (optional, for production-like local testing) ──────────────────
+  mysql:
+    image: mysql:8.0
+    profiles: ["mysql"]   # Only starts with: docker compose --profile mysql up
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: voiceagent_db
+      MYSQL_USER: agentuser
+      MYSQL_PASSWORD: agentpass
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - agent_net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  mysql_data:
+
+networks:
+  agent_net:
+    driver: bridge
