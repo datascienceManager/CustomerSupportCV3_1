@@ -1,0 +1,534 @@
+
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 0; }
+  .guide { font-family: var(--font-sans); color: var(--color-text-primary); padding: 0 0 32px; }
+
+  .stage-nav { display: flex; gap: 0; margin-bottom: 0; border-bottom: 1px solid var(--color-border-tertiary); }
+  .stage-btn { flex: 1; padding: 12px 8px; font-size: 12px; font-weight: 500; text-align: center; cursor: pointer;
+    border: none; background: transparent; color: var(--color-text-secondary); border-bottom: 2px solid transparent;
+    transition: all .2s; line-height: 1.3; }
+  .stage-btn:hover { color: var(--color-text-primary); background: var(--color-background-secondary); }
+  .stage-btn.active { color: var(--color-text-primary); border-bottom-color: #7F77DD; }
+  .stage-num { display: block; font-size: 18px; font-weight: 500; color: #7F77DD; }
+
+  .panel { display: none; padding: 24px 0 0; }
+  .panel.active { display: block; }
+
+  .section-label { font-size: 11px; font-weight: 500; letter-spacing: .08em; color: var(--color-text-tertiary);
+    text-transform: uppercase; margin: 0 0 12px; }
+
+  .cmd-block { background: var(--color-background-secondary); border: 1px solid var(--color-border-tertiary);
+    border-radius: 8px; padding: 14px 16px; margin: 12px 0; font-family: var(--font-mono); font-size: 12px;
+    line-height: 1.8; color: var(--color-text-primary); position: relative; }
+  .cmd-comment { color: var(--color-text-tertiary); }
+  .cmd-keyword { color: #7F77DD; font-weight: 500; }
+  .cmd-value { color: #1D9E75; }
+  .cmd-flag { color: #BA7517; }
+
+  .copy-btn { position: absolute; top: 10px; right: 10px; padding: 3px 10px; font-size: 11px;
+    background: var(--color-background-primary); border: 1px solid var(--color-border-secondary);
+    border-radius: 5px; cursor: pointer; color: var(--color-text-secondary); font-family: var(--font-sans); }
+  .copy-btn:hover { color: var(--color-text-primary); }
+
+  .info-card { border-radius: 10px; padding: 14px 16px; margin: 12px 0; border: 1px solid; }
+  .info-card.tip { background: #E1F5EE; border-color: #5DCAA5; color: #085041; }
+  .info-card.warn { background: #FAEEDA; border-color: #EF9F27; color: #412402; }
+  .info-card.note { background: #EEEDFE; border-color: #AFA9EC; color: #26215C; }
+  @media (prefers-color-scheme: dark) {
+    .info-card.tip  { background: #085041; border-color: #1D9E75; color: #9FE1CB; }
+    .info-card.warn { background: #412402; border-color: #BA7517; color: #FAC775; }
+    .info-card.note { background: #26215C; border-color: #7F77DD; color: #CECBF6; }
+  }
+  .info-card-title { font-weight: 500; font-size: 13px; margin-bottom: 4px; }
+  .info-card p { margin: 4px 0 0; font-size: 13px; line-height: 1.6; }
+
+  .model-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 12px 0; }
+  .model-card { background: var(--color-background-secondary); border: 1px solid var(--color-border-tertiary);
+    border-radius: 8px; padding: 10px 12px; cursor: pointer; transition: border-color .15s; }
+  .model-card:hover { border-color: #7F77DD; }
+  .model-card.rec { border-color: #5DCAA5; }
+  .model-name { font-size: 13px; font-weight: 500; font-family: var(--font-mono); }
+  .model-size { font-size: 11px; color: var(--color-text-tertiary); margin: 2px 0; }
+  .model-badge { font-size: 10px; padding: 1px 6px; border-radius: 10px; display: inline-block; margin-top: 3px; }
+  .badge-rec  { background: #E1F5EE; color: #085041; }
+  .badge-balanced { background: #EEEDFE; color: #26215C; }
+  .badge-heavy { background: #FAEEDA; color: #412402; }
+  @media (prefers-color-scheme: dark) {
+    .badge-rec  { background: #085041; color: #9FE1CB; }
+    .badge-balanced { background: #26215C; color: #CECBF6; }
+    .badge-heavy { background: #412402; color: #FAC775; }
+  }
+
+  .flow-steps { display: flex; flex-direction: column; gap: 0; margin: 16px 0; }
+  .flow-step { display: flex; gap: 16px; align-items: flex-start; }
+  .step-spine { display: flex; flex-direction: column; align-items: center; }
+  .step-dot { width: 28px; height: 28px; border-radius: 50%; background: #7F77DD;
+    color: #fff; display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 500; flex-shrink: 0; }
+  .step-line { width: 2px; flex: 1; min-height: 20px; background: var(--color-border-tertiary); }
+  .step-body { flex: 1; padding-bottom: 20px; }
+  .step-title { font-size: 14px; font-weight: 500; margin: 4px 0 6px; }
+  .step-desc { font-size: 13px; color: var(--color-text-secondary); line-height: 1.6; }
+
+  .checklist { margin: 12px 0; }
+  .check-item { display: flex; gap: 10px; align-items: flex-start; padding: 6px 0;
+    border-bottom: 1px solid var(--color-border-tertiary); font-size: 13px; }
+  .check-item:last-child { border-bottom: none; }
+  .check-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+  .check-text { color: var(--color-text-primary); line-height: 1.5; }
+  .check-sub { color: var(--color-text-secondary); font-size: 12px; display: block; margin-top: 2px; }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 12px 0; }
+  .col-card { background: var(--color-background-secondary); border: 1px solid var(--color-border-tertiary);
+    border-radius: 10px; padding: 14px 16px; }
+  .col-card-title { font-size: 12px; font-weight: 500; color: var(--color-text-secondary);
+    text-transform: uppercase; letter-spacing: .06em; margin-bottom: 8px; }
+  .col-card ul { margin: 0; padding-left: 16px; }
+  .col-card li { font-size: 13px; color: var(--color-text-secondary); line-height: 1.7; }
+
+  .arch-visual { margin: 16px 0; }
+  .env-var-table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 12px 0; }
+  .env-var-table th { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--color-border-secondary);
+    font-size: 11px; font-weight: 500; color: var(--color-text-tertiary); text-transform: uppercase; letter-spacing: .06em; }
+  .env-var-table td { padding: 8px 10px; border-bottom: 1px solid var(--color-border-tertiary);
+    vertical-align: top; }
+  .env-var-table td:first-child { font-family: var(--font-mono); font-size: 12px; color: #7F77DD; white-space: nowrap; }
+  .env-var-table td:last-child { color: var(--color-text-secondary); }
+
+  .progress-bar { height: 3px; background: var(--color-border-tertiary); border-radius: 2px; margin-bottom: 20px; }
+  .progress-fill { height: 100%; background: #7F77DD; border-radius: 2px; transition: width .3s; }
+</style>
+
+<div class="guide">
+  <div class="progress-bar"><div class="progress-fill" id="progress" style="width:20%"></div></div>
+
+  <div class="stage-nav">
+    <button class="stage-btn active" onclick="showPanel(0)"><span class="stage-num">1</span>Install Ollama</button>
+    <button class="stage-btn" onclick="showPanel(1)"><span class="stage-num">2</span>Docker locally</button>
+    <button class="stage-btn" onclick="showPanel(2)"><span class="stage-num">3</span>Build &amp; push ACR</button>
+    <button class="stage-btn" onclick="showPanel(3)"><span class="stage-num">4</span>Deploy Azure</button>
+    <button class="stage-btn" onclick="showPanel(4)"><span class="stage-num">5</span>Verify &amp; test</button>
+  </div>
+
+  <!-- PANEL 0: Install Ollama -->
+  <div class="panel active" id="p0">
+    <div class="section-label">Step 1 — Install Ollama on your machine</div>
+
+    <div class="info-card note">
+      <div class="info-card-title">What is Ollama?</div>
+      <p>Ollama is a runtime that downloads and serves open-source LLMs (Llama 3, Mistral, Gemma, etc.) on your own machine via a simple REST API on port 11434. Your Streamlit app calls <code>http://localhost:11434/api/chat</code> — no API key, no cloud cost.</p>
+    </div>
+
+    <p class="section-label" style="margin-top:20px">Pick your OS</p>
+    <div class="two-col">
+      <div class="col-card">
+        <div class="col-card-title">macOS / Linux</div>
+        <div class="cmd-block" style="margin:0">
+          <span class="cmd-comment"># Install</span><br>
+          <span class="cmd-keyword">brew</span> install ollama<br>
+          <span class="cmd-comment"># or via curl</span><br>
+          curl -fsSL https://ollama.com/install.sh | sh<br><br>
+          <span class="cmd-comment"># Start the server</span><br>
+          <span class="cmd-keyword">ollama</span> serve
+        </div>
+      </div>
+      <div class="col-card">
+        <div class="col-card-title">Windows</div>
+        <div style="font-size:13px; color:var(--color-text-secondary); margin-bottom:10px; line-height:1.6">Download the installer from <strong>ollama.com/download</strong> and run it. Ollama starts automatically as a system tray app.</div>
+        <div class="cmd-block" style="margin:0">
+          <span class="cmd-comment"># Then in PowerShell</span><br>
+          <span class="cmd-keyword">ollama</span> pull llama3.2<br>
+          <span class="cmd-keyword">ollama</span> serve
+        </div>
+      </div>
+    </div>
+
+    <p class="section-label" style="margin-top:20px">Choose a model (pull one)</p>
+    <div class="model-grid">
+      <div class="model-card rec" onclick="copyModel('llama3.2')">
+        <div class="model-name">llama3.2</div>
+        <div class="model-size">3B params · ~2 GB</div>
+        <span class="model-badge badge-rec">Recommended for demo</span>
+      </div>
+      <div class="model-card" onclick="copyModel('mistral')">
+        <div class="model-name">mistral</div>
+        <div class="model-size">7B params · ~4 GB</div>
+        <span class="model-badge badge-balanced">Best quality/speed</span>
+      </div>
+      <div class="model-card" onclick="copyModel('phi3')">
+        <div class="model-name">phi3</div>
+        <div class="model-size">3.8B · ~2.3 GB</div>
+        <span class="model-badge badge-balanced">Lightweight</span>
+      </div>
+      <div class="model-card" onclick="copyModel('gemma2')">
+        <div class="model-name">gemma2</div>
+        <div class="model-size">9B params · ~5 GB</div>
+        <span class="model-badge badge-balanced">Google, very capable</span>
+      </div>
+      <div class="model-card" onclick="copyModel('llama3.1')">
+        <div class="model-name">llama3.1</div>
+        <div class="model-size">8B params · ~5 GB</div>
+        <span class="model-badge badge-balanced">Balanced</span>
+      </div>
+      <div class="model-card" onclick="copyModel('llama3.1:70b')">
+        <div class="model-name">llama3.1:70b</div>
+        <div class="model-size">70B · ~48 GB RAM</div>
+        <span class="model-badge badge-heavy">Needs GPU</span>
+      </div>
+    </div>
+
+    <div class="cmd-block">
+      <button class="copy-btn" onclick="copyText(this)">Copy</button>
+      <span class="cmd-comment"># Pull your chosen model (downloads weights once)</span><br>
+      <span class="cmd-keyword">ollama</span> pull <span class="cmd-value" id="chosen-model">llama3.2</span><br><br>
+      <span class="cmd-comment"># Verify it works</span><br>
+      <span class="cmd-keyword">curl</span> http://localhost:11434/api/tags<br><br>
+      <span class="cmd-comment"># Quick chat test</span><br>
+      <span class="cmd-keyword">ollama</span> run <span class="cmd-value" id="chosen-model2">llama3.2</span> <span class="cmd-flag">"Say hello in one sentence"</span>
+    </div>
+
+    <div class="info-card tip">
+      <div class="info-card-title">Click any model above to update the pull command</div>
+      <p>Models are stored in <code>~/.ollama/models</code>. Once pulled, they work fully offline.</p>
+    </div>
+  </div>
+
+  <!-- PANEL 1: Docker locally -->
+  <div class="panel" id="p1">
+    <div class="section-label">Step 2 — Run everything locally with Docker Compose</div>
+
+    <div class="arch-visual">
+      <svg width="100%" viewBox="0 0 680 200">
+        <defs>
+          <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </marker>
+        </defs>
+        <g class="c-gray">
+          <rect x="20" y="20" width="640" height="160" rx="12" stroke-width="0.5"/>
+          <text class="ts" x="36" y="42">docker compose up --build</text>
+        </g>
+        <g class="c-teal">
+          <rect x="50" y="60" width="170" height="96" rx="8" stroke-width="0.5"/>
+          <text class="th" x="135" y="98" text-anchor="middle" dominant-baseline="central">ollama</text>
+          <text class="ts" x="135" y="120" text-anchor="middle" dominant-baseline="central">port 11434</text>
+          <text class="ts" x="135" y="138" text-anchor="middle" dominant-baseline="central">models volume</text>
+        </g>
+        <g class="c-purple">
+          <rect x="255" y="60" width="170" height="96" rx="8" stroke-width="0.5"/>
+          <text class="th" x="340" y="98" text-anchor="middle" dominant-baseline="central">ollama-pull</text>
+          <text class="ts" x="340" y="120" text-anchor="middle" dominant-baseline="central">one-shot helper</text>
+          <text class="ts" x="340" y="138" text-anchor="middle" dominant-baseline="central">pulls llama3.2</text>
+        </g>
+        <g class="c-coral">
+          <rect x="460" y="60" width="170" height="96" rx="8" stroke-width="0.5"/>
+          <text class="th" x="545" y="98" text-anchor="middle" dominant-baseline="central">app (Streamlit)</text>
+          <text class="ts" x="545" y="120" text-anchor="middle" dominant-baseline="central">port 8501</text>
+          <text class="ts" x="545" y="138" text-anchor="middle" dominant-baseline="central">OLLAMA_BASE_URL=</text>
+        </g>
+        <line x1="220" y1="108" x2="253" y2="108" class="arr" stroke="#5DCAA5" marker-end="url(#arrow)"/>
+        <line x1="425" y1="108" x2="458" y2="108" class="arr" stroke="#BA7517" marker-end="url(#arrow)"/>
+        <text class="ts" x="234" y="101" text-anchor="middle">models</text>
+        <text class="ts" x="442" y="101" text-anchor="middle">API calls</text>
+      </svg>
+    </div>
+
+    <div class="cmd-block">
+      <button class="copy-btn" onclick="copyText(this)">Copy</button>
+      <span class="cmd-comment"># 1. Copy environment config</span><br>
+      <span class="cmd-keyword">cp</span> .env.example .env<br><br>
+      <span class="cmd-comment"># 2. Set your model in .env</span><br>
+      <span class="cmd-value">OLLAMA_BASE_URL</span>=http://localhost:11434<br>
+      <span class="cmd-value">OLLAMA_MODEL</span>=llama3.2<br><br>
+      <span class="cmd-comment"># 3. Start all containers (Ollama + app)</span><br>
+      <span class="cmd-keyword">docker</span> compose up --build<br><br>
+      <span class="cmd-comment"># First run: downloads model (~2 GB), takes a few minutes</span><br>
+      <span class="cmd-comment"># Subsequent runs: uses cached ollama_models volume, instant start</span>
+    </div>
+
+    <div class="info-card warn">
+      <div class="info-card-title">Why two Ollama containers?</div>
+      <p><code>ollama</code> is the long-running server. <code>ollama-pull</code> is a one-shot helper that waits 5 seconds, runs <code>ollama pull llama3.2</code>, then exits. This ensures the model is downloaded before the app starts sending requests.</p>
+    </div>
+
+    <div class="cmd-block">
+      <button class="copy-btn" onclick="copyText(this)">Copy</button>
+      <span class="cmd-comment"># Verify all three containers are running</span><br>
+      <span class="cmd-keyword">docker</span> compose ps<br><br>
+      <span class="cmd-comment"># Stream logs from the Ollama container</span><br>
+      <span class="cmd-keyword">docker</span> compose logs <span class="cmd-flag">-f</span> ollama<br><br>
+      <span class="cmd-comment"># Open the app</span><br>
+      open http://localhost:8501
+    </div>
+  </div>
+
+  <!-- PANEL 2: Build and Push to ACR -->
+  <div class="panel" id="p2">
+    <div class="section-label">Step 3 — Build your image and push to Azure Container Registry</div>
+
+    <div class="arch-visual">
+      <svg width="100%" viewBox="0 0 680 130">
+        <defs>
+          <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </marker>
+        </defs>
+        <g class="c-gray">
+          <rect x="20" y="30" width="140" height="70" rx="8" stroke-width="0.5"/>
+          <text class="th" x="90" y="62" text-anchor="middle" dominant-baseline="central">Local machine</text>
+          <text class="ts" x="90" y="80" text-anchor="middle" dominant-baseline="central">Dockerfile + code</text>
+        </g>
+        <line x1="160" y1="65" x2="220" y2="65" class="arr" stroke="#5F5E5A" marker-end="url(#arrow)"/>
+        <text class="ts" x="190" y="57" text-anchor="middle">az acr build</text>
+        <g class="c-blue">
+          <rect x="222" y="30" width="180" height="70" rx="8" stroke-width="0.5"/>
+          <text class="th" x="312" y="62" text-anchor="middle" dominant-baseline="central">Azure Container</text>
+          <text class="ts" x="312" y="80" text-anchor="middle" dominant-baseline="central">Registry (ACR)</text>
+        </g>
+        <line x1="402" y1="65" x2="458" y2="65" class="arr" stroke="#185FA5" marker-end="url(#arrow)"/>
+        <text class="ts" x="430" y="57" text-anchor="middle">pull on deploy</text>
+        <g class="c-purple">
+          <rect x="460" y="30" width="200" height="70" rx="8" stroke-width="0.5"/>
+          <text class="th" x="560" y="62" text-anchor="middle" dominant-baseline="central">Azure Container Apps</text>
+          <text class="ts" x="560" y="80" text-anchor="middle" dominant-baseline="central">Streamlit + Ollama sidecar</text>
+        </g>
+      </svg>
+    </div>
+
+    <div class="flow-steps">
+      <div class="flow-step">
+        <div class="step-spine"><div class="step-dot">1</div><div class="step-line"></div></div>
+        <div class="step-body">
+          <div class="step-title">Login to Azure</div>
+          <div class="cmd-block">
+            <button class="copy-btn" onclick="copyText(this)">Copy</button>
+            <span class="cmd-keyword">az</span> login<br>
+            <span class="cmd-keyword">az</span> account set <span class="cmd-flag">--subscription</span> <span class="cmd-value">"Your Subscription Name"</span>
+          </div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="step-spine"><div class="step-dot">2</div><div class="step-line"></div></div>
+        <div class="step-body">
+          <div class="step-title">Create a Resource Group and ACR</div>
+          <div class="cmd-block">
+            <button class="copy-btn" onclick="copyText(this)">Copy</button>
+            <span class="cmd-comment"># Create resource group</span><br>
+            <span class="cmd-keyword">az</span> group create <span class="cmd-flag">--name</span> ai-voice-agent-rg <span class="cmd-flag">--location</span> eastus<br><br>
+            <span class="cmd-comment"># Create Container Registry (Basic SKU = cheapest)</span><br>
+            <span class="cmd-keyword">az</span> acr create <span class="cmd-flag">--resource-group</span> ai-voice-agent-rg <span class="cmd-flag">--name</span> aivoiceagentacr <span class="cmd-flag">--sku</span> Basic <span class="cmd-flag">--admin-enabled</span> true
+          </div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="step-spine"><div class="step-dot">3</div><div class="step-line"></div></div>
+        <div class="step-body">
+          <div class="step-title">Build and push your Streamlit app image</div>
+          <div class="cmd-block">
+            <button class="copy-btn" onclick="copyText(this)">Copy</button>
+            <span class="cmd-comment"># Option A: Build in Azure (no Docker needed locally)</span><br>
+            <span class="cmd-keyword">az</span> acr build <span class="cmd-flag">--registry</span> aivoiceagentacr <span class="cmd-flag">--image</span> <span class="cmd-value">ai-voice-agent:latest</span> .<br><br>
+            <span class="cmd-comment"># Option B: Build locally then push</span><br>
+            <span class="cmd-keyword">docker</span> build <span class="cmd-flag">-t</span> aivoiceagentacr.azurecr.io/ai-voice-agent:latest .<br>
+            <span class="cmd-keyword">az</span> acr login <span class="cmd-flag">--name</span> aivoiceagentacr<br>
+            <span class="cmd-keyword">docker</span> push aivoiceagentacr.azurecr.io/ai-voice-agent:latest
+          </div>
+          <div class="info-card tip" style="margin-top:10px">
+            <div class="info-card-title">Use Option A if possible</div>
+            <p><code>az acr build</code> uploads your source code to Azure and builds in the cloud — faster, no local Docker needed, and automatically pushes to ACR.</p>
+          </div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="step-spine"><div class="step-dot">4</div></div>
+        <div class="step-body">
+          <div class="step-title">Verify the image is in ACR</div>
+          <div class="cmd-block">
+            <button class="copy-btn" onclick="copyText(this)">Copy</button>
+            <span class="cmd-keyword">az</span> acr repository list <span class="cmd-flag">--name</span> aivoiceagentacr <span class="cmd-flag">--output</span> table<br><br>
+            <span class="cmd-keyword">az</span> acr repository show-tags <span class="cmd-flag">--name</span> aivoiceagentacr <span class="cmd-flag">--repository</span> ai-voice-agent
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="info-card note">
+      <div class="info-card-title">Ollama image comes from Docker Hub directly</div>
+      <p>You do NOT push the Ollama image to ACR. Azure Container Apps pulls <code>ollama/ollama:latest</code> from Docker Hub automatically when the sidecar container starts. Only your Streamlit app image needs to be in ACR.</p>
+    </div>
+  </div>
+
+  <!-- PANEL 3: Deploy Azure -->
+  <div class="panel" id="p3">
+    <div class="section-label">Step 4 — Deploy to Azure Container Apps</div>
+
+    <div class="arch-visual">
+      <svg width="100%" viewBox="0 0 680 220">
+        <defs>
+          <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </marker>
+        </defs>
+        <g class="c-gray">
+          <rect x="20" y="20" width="640" height="180" rx="14" stroke-width="0.5"/>
+          <text class="ts" x="36" y="42">Azure Container Apps — single revision</text>
+        </g>
+        <g class="c-purple">
+          <rect x="50" y="60" width="260" height="110" rx="8" stroke-width="0.5"/>
+          <text class="th" x="180" y="100" text-anchor="middle" dominant-baseline="central">Streamlit app</text>
+          <text class="ts" x="180" y="120" text-anchor="middle" dominant-baseline="central">0.5 CPU / 1 GB RAM</text>
+          <text class="ts" x="180" y="140" text-anchor="middle" dominant-baseline="central">port 8501 (public)</text>
+        </g>
+        <line x1="312" y1="115" x2="358" y2="115" class="arr" stroke="#534AB7" stroke-width="1.5" marker-end="url(#arrow)"/>
+        <text class="ts" x="335" y="107" text-anchor="middle">localhost</text>
+        <text class="ts" x="335" y="120" text-anchor="middle">:11434</text>
+        <g class="c-teal">
+          <rect x="360" y="60" width="260" height="110" rx="8" stroke-width="0.5"/>
+          <text class="th" x="490" y="100" text-anchor="middle" dominant-baseline="central">Ollama sidecar</text>
+          <text class="ts" x="490" y="120" text-anchor="middle" dominant-baseline="central">1 CPU / 4 GB RAM</text>
+          <text class="ts" x="490" y="140" text-anchor="middle" dominant-baseline="central">port 11434 (internal)</text>
+        </g>
+        <g class="c-blue">
+          <rect x="280" y="175" width="120" height="30" rx="6" stroke-width="0.5"/>
+          <text class="ts" x="340" y="194" text-anchor="middle" dominant-baseline="central">shared EmptyDir volume</text>
+        </g>
+      </svg>
+    </div>
+
+    <div class="info-card note">
+      <div class="info-card-title">Sidecar pattern — why it matters</div>
+      <p>Both containers run in the same Container App revision. They share a network namespace, so the Streamlit app reaches Ollama at <code>http://localhost:11434</code> — zero latency, no public exposure of the Ollama port. They also share an <code>EmptyDir</code> volume so Ollama can cache model weights.</p>
+    </div>
+
+    <div class="cmd-block">
+      <button class="copy-btn" onclick="copyText(this)">Copy</button>
+      <span class="cmd-comment"># One-command deploy using the Bicep template</span><br>
+      <span class="cmd-keyword">az</span> deployment group create <span class="cmd-flag">\</span><br>
+      &nbsp;&nbsp;<span class="cmd-flag">--resource-group</span> ai-voice-agent-rg <span class="cmd-flag">\</span><br>
+      &nbsp;&nbsp;<span class="cmd-flag">--template-file</span> azure/main.bicep <span class="cmd-flag">\</span><br>
+      &nbsp;&nbsp;<span class="cmd-flag">--parameters</span> <span class="cmd-value">containerImage</span>=aivoiceagentacr.azurecr.io/ai-voice-agent:latest <span class="cmd-flag">\</span><br>
+      &nbsp;&nbsp;<span class="cmd-flag">--parameters</span> <span class="cmd-value">ollamaModel</span>=llama3.2 <span class="cmd-flag">\</span><br>
+      &nbsp;&nbsp;<span class="cmd-flag">--parameters</span> <span class="cmd-value">sendgridApiKey</span>=SG.xxxxx <span class="cmd-flag">\</span><br>
+      &nbsp;&nbsp;<span class="cmd-flag">--parameters</span> <span class="cmd-value">productEmail</span>=product@yourco.com <span class="cmd-flag">\</span><br>
+      &nbsp;&nbsp;<span class="cmd-flag">--parameters</span> <span class="cmd-value">paymentEmail</span>=payments@yourco.com
+    </div>
+
+    <p class="section-label" style="margin-top:20px">Or use the one-shot deploy script</p>
+    <div class="cmd-block">
+      <button class="copy-btn" onclick="copyText(this)">Copy</button>
+      <span class="cmd-comment"># Interactive — prompts for all secrets securely</span><br>
+      <span class="cmd-keyword">bash</span> azure/deploy.sh
+    </div>
+
+    <p class="section-label" style="margin-top:20px">Key environment variables set by Bicep</p>
+    <table class="env-var-table">
+      <tr><th>Variable</th><th>Value in Azure</th></tr>
+      <tr><td>OLLAMA_BASE_URL</td><td>http://localhost:11434 (sidecar shares localhost)</td></tr>
+      <tr><td>OLLAMA_MODEL</td><td>llama3.2 (or whichever you set)</td></tr>
+      <tr><td>OLLAMA_TIMEOUT</td><td>180 (generous, first request cold-starts the model)</td></tr>
+      <tr><td>DB_TYPE</td><td>sqlite (uses EmptyDir; swap to mysql for persistence)</td></tr>
+      <tr><td>APP_ENV</td><td>production</td></tr>
+      <tr><td>SENDGRID_API_KEY</td><td>Pulled from Key Vault secret reference</td></tr>
+    </table>
+
+    <div class="info-card warn">
+      <div class="info-card-title">First startup is slow (~3–5 min)</div>
+      <p>When the container app starts for the first time, Ollama pulls the model weights inside the container (~2 GB for llama3.2). Subsequent restarts reuse the EmptyDir cache. For production, mount an Azure File Share as the volume instead of EmptyDir so weights survive restarts.</p>
+    </div>
+  </div>
+
+  <!-- PANEL 4: Verify -->
+  <div class="panel" id="p4">
+    <div class="section-label">Step 5 — Verify your deployment and debug tips</div>
+
+    <div class="checklist">
+      <div class="check-item">
+        <div class="check-icon">🔵</div>
+        <div class="check-text">
+          Get your app URL
+          <span class="check-sub">Printed at end of deployment, or: <code>az containerapp show --name ai-voice-agent-app --resource-group ai-voice-agent-rg --query properties.configuration.ingress.fqdn -o tsv</code></span>
+        </div>
+      </div>
+      <div class="check-item">
+        <div class="check-icon">🔵</div>
+        <div class="check-text">
+          Check Ollama health from Admin panel
+          <span class="check-sub">Open the app → Admin → LLM &amp; Config → click "Check Status". Should show ● Ollama Online with llama3.2 listed.</span>
+        </div>
+      </div>
+      <div class="check-item">
+        <div class="check-icon">🔵</div>
+        <div class="check-text">
+          Test a chat query
+          <span class="check-sub">Go to Chat page, type "What is your return policy?" — should get a categorised Product response.</span>
+        </div>
+      </div>
+      <div class="check-item">
+        <div class="check-icon">🔵</div>
+        <div class="check-text">
+          Check container logs
+          <span class="check-sub"><code>az containerapp logs show --name ai-voice-agent-app --resource-group ai-voice-agent-rg --follow</code></span>
+        </div>
+      </div>
+      <div class="check-item">
+        <div class="check-icon">🔵</div>
+        <div class="check-text">
+          Trigger a test email summary
+          <span class="check-sub">Admin panel → Email Control → "Send All Department Summaries NOW"</span>
+        </div>
+      </div>
+    </div>
+
+    <p class="section-label" style="margin-top:20px">Common issues and fixes</p>
+
+    <div class="info-card warn">
+      <div class="info-card-title">Ollama shows offline / timeout errors</div>
+      <p>The sidecar is still pulling the model. Wait 3–5 minutes and retry. Check logs: <code>az containerapp logs show ... | grep ollama</code>. If it keeps failing, increase <code>OLLAMA_TIMEOUT</code> to 300 in the Container App environment variables.</p>
+    </div>
+
+    <div class="info-card warn">
+      <div class="info-card-title">JSON parse errors / garbled AI responses</div>
+      <p>Small models (phi3, llama3.2) occasionally respond outside the JSON format. The app's fallback returns the raw text as the answer. Switch to <code>mistral</code> or <code>llama3.1</code> for more reliable JSON adherence. Change <code>OLLAMA_MODEL</code> in Container App env vars and restart.</p>
+    </div>
+
+    <div class="info-card tip">
+      <div class="info-card-title">Persist model weights across restarts</div>
+      <p>Replace the EmptyDir volume with an Azure File Share mounted at <code>/root/.ollama</code>. This way the model is downloaded once and survives pod restarts and scaling events.</p>
+    </div>
+
+    <div class="cmd-block">
+      <button class="copy-btn" onclick="copyText(this)">Copy</button>
+      <span class="cmd-comment"># Restart the container app (forces fresh pull)</span><br>
+      <span class="cmd-keyword">az</span> containerapp revision restart <span class="cmd-flag">--name</span> ai-voice-agent-app <span class="cmd-flag">--resource-group</span> ai-voice-agent-rg<br><br>
+      <span class="cmd-comment"># Update OLLAMA_MODEL to switch models without redeploying</span><br>
+      <span class="cmd-keyword">az</span> containerapp update <span class="cmd-flag">--name</span> ai-voice-agent-app <span class="cmd-flag">--resource-group</span> ai-voice-agent-rg <span class="cmd-flag">\</span><br>
+      &nbsp;&nbsp;<span class="cmd-flag">--set-env-vars</span> <span class="cmd-value">OLLAMA_MODEL</span>=mistral
+    </div>
+  </div>
+</div>
+
+<script>
+function showPanel(idx) {
+  document.querySelectorAll('.panel').forEach((p, i) => p.classList.toggle('active', i === idx));
+  document.querySelectorAll('.stage-btn').forEach((b, i) => b.classList.toggle('active', i === idx));
+  document.getElementById('progress').style.width = ((idx + 1) / 5 * 100) + '%';
+}
+
+function copyModel(name) {
+  document.querySelectorAll('.model-card').forEach(c => c.classList.remove('rec'));
+  event.currentTarget.classList.add('rec');
+  document.querySelectorAll('[id^="chosen-model"]').forEach(el => el.textContent = name);
+}
+
+function copyText(btn) {
+  const block = btn.closest('.cmd-block');
+  const clone = block.cloneNode(true);
+  clone.querySelector('.copy-btn')?.remove();
+  const text = clone.innerText.replace(/^#.*\n/gm, '').replace(/\n\n+/g, '\n').trim();
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy', 1500);
+  });
+}
+</script>
